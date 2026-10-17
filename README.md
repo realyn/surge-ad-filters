@@ -11,6 +11,7 @@
 | --- | --- | --- | --- |
 | [微博](apps/weibo/README.md) | 开屏及广告缓存、热搜推广、发现页广告横幅、内容列表与评论中的明确广告标记 | 2026-10-17：iOS 实机验证；视频列表正常播放及切换已验证，未验证所有视频广告形式 | [模块地址](https://raw.githubusercontent.com/realyn/surge-ad-filters/main/apps/weibo/Weibo.sgmodule) |
 | [直播吧](apps/zhibo8/README.md) | 广告配置、开屏与弹窗入口、首页广告服务及备用地址 | 2026-10-17：6.9.7 在已有规则环境实测；新闻、评论、短视频、比赛直播与比分正常 | [模块地址](https://raw.githubusercontent.com/realyn/surge-ad-filters/main/apps/zhibo8/Zhibo8.sgmodule) |
+| [闲鱼](apps/xianyu/README.md) | 开屏及预取素材、首页与搜索结果中的明确广告卡片 | 2026-10-17：实机命中；商品详情、图片和消息列表正常；保留业务入口及未明确识别的推广 | [模块地址](https://raw.githubusercontent.com/realyn/surge-ad-filters/main/apps/xianyu/Xianyu.sgmodule) |
 
 其他应用会陆续加入 `apps/<应用名>/`。尚未列出的应用不在当前支持范围内。
 
@@ -50,6 +51,8 @@ npm test
 ```
 
 公开测试使用人工构造的最小样本，覆盖广告识别、正常内容保留、分页字段、异常响应和模块匹配。实机验证及局限见各应用说明；私人抓包不会提交到仓库。
+
+维护与自动化方案见 [维护说明](MAINTENANCE.md)。
 
 新增应用请阅读 [贡献规范](CONTRIBUTING.md)。版本变化见 [更新记录](CHANGELOG.md)。
 
