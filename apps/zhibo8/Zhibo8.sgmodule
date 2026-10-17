@@ -1,0 +1,18 @@
+#!name=Zhibo8 Ad Filter
+#!desc=过滤直播吧广告配置，保留新闻、赛程、比分、评论和播放功能。独立模块，可单独关闭。
+
+[Rule]
+AND,((IP-CIDR,47.99.237.245/32), (DEST-PORT,8091)),REJECT
+DOMAIN,ggtg.duoduocdn.com,REJECT
+DOMAIN,sdkquic.e.qq.com,REJECT
+DOMAIN,tk.lanjingads.com,REJECT
+AND,((IP-CIDR,47.111.8.123/32), (DEST-PORT,8091)),REJECT
+AND,((IP-CIDR,118.178.168.156/32), (DEST-PORT,8091)),REJECT
+URL-REGEX,^https?://s\.qiumibao\.com/activities/material/json\.htm(?:\?|$),REJECT
+URL-REGEX,^https?://a\.qiumibao\.com/ios/config/(?:\?|$),DIRECT
+
+[MITM]
+hostname = %APPEND% a.qiumibao.com, s.qiumibao.com
+
+[Script]
+zhibo8-ad-filter = type=http-response,pattern=^https?://a\.qiumibao\.com/ios/config/(?:\?|$),requires-body=true,max-size=2097152,timeout=5,engine=jsc,script-path=https://raw.githubusercontent.com/realyn/surge-ad-filters/v0.2.0/apps/zhibo8/zhibo8.js
