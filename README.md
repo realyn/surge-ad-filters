@@ -42,9 +42,15 @@ https://raw.githubusercontent.com/realyn/surge-ad-filters/main/apps/weibo/Weibo.
 
 遇到异常可先关闭对应模块，再通过 [Issue](https://github.com/realyn/surge-ad-filters/issues/new/choose) 反馈。请提供应用版本、广告位置和复现步骤；**不要公开上传原始 HAR、Cookie、Token、证书、完整请求 URL 或个人配置文件**。
 
+## 按需检测广告变化
+
+[Surge Ad Check](tools/ad-check/README.md) 是 Rust 编写的本地 Mac 工具，支持手机实时观察和 HAR 离线模拟、基准比较、可选 Qwen / DeepSeek API 分析，以及 Codex / Claude Code 交接包。不会修改 Home，也不会自动发布修复。未知变化需要证据和实机复核。
+
+Mac 安装包见 [Releases](https://github.com/realyn/surge-ad-filters/releases)；首次连接与模型设置见 [使用说明](tools/ad-check/README.md)。
+
 ## 开发与验证
 
-使用 Node.js 22 或更高版本，无第三方运行依赖：
+过滤脚本测试使用 Node.js 22 或更高版本，无第三方运行依赖：
 
 ```sh
 npm test

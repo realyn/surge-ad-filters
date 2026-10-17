@@ -17,3 +17,8 @@ private/
 *.jpg
 *.jpeg
 *.zip
+
+# Rust build products and local diagnostic data
+**/target/
+**/reports/
+*.dSYM/

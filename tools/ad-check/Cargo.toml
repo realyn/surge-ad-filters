@@ -1,0 +1,27 @@
+[package]
+name = "surge-ad-check"
+version = "0.1.0"
+edition = "2024"
+license = "MIT"
+description = "Local, evidence-based diagnostics for three Surge ad filters"
+
+[dependencies]
+boa_engine = "0.22"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+sha2 = "0.10"
+rand = "0.8"
+tiny_http = "0.12"
+fs2 = "0.4"
+base64 = "0.22"
+ctrlc = "3"
+ureq = { version = "3", features = ["json"] }
+url = "2"
+zip = { version = "2", default-features = false, features = ["deflate"] }
+
+[target.'cfg(target_os = "macos")'.dependencies]
+security-framework = "3"
+
+[profile.release]
+strip = true
+lto = "thin"
