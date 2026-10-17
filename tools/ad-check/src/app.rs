@@ -307,6 +307,12 @@ impl App {
                     if s.phase != "running" || s.session != session {
                         return;
                     }
+                    if item["diagnosticIssue"] == true
+                        && !s.errors.iter().any(|x| x.starts_with("诊断日志不完整"))
+                    {
+                        s.errors
+                            .push("诊断日志不完整，部分接口无法验证；请更新工具后重试。".into());
+                    }
                     let Some(id) = item["id"].as_str() else {
                         continue;
                     };

@@ -96,7 +96,9 @@ const event={{v:1,session:lease.id,app,route,source:{source_hash},status:Number(
 before:AdCheck.inspect(app,route,raw),after:AdCheck.inspect(app,route,result&&typeof result.body==='string'?result.body:raw)}};
 event.preserved=event.before.protected!==null&&event.before.protected!==undefined?event.before.protected===event.after.protected:null;
 delete event.before.protected;delete event.after.protected;
-console.log('AD_CHECK_V1 '+JSON.stringify(event));}}}}catch(_){{}}
+delete event.before.shape?.paths;delete event.after.shape?.paths;
+const payload=JSON.stringify(event),size=80,total=Math.ceil(payload.length/size);
+if(total<=64){{for(let i=0;i<total;i++)console.log('AD_CHECK_CHUNK '+i+'/'+total+' '+payload.slice(i*size,(i+1)*size));}}}}}}catch(_){{}}
 realDone(result);}}
 (function($done){{
 {}
@@ -254,5 +256,19 @@ mod tests {
         assert!(!v.to_string().contains("SECRET"));
         assert!(!v.to_string().contains("private-id"));
         assert!(!v.to_string().contains("api.weibo"));
+    }
+    #[test]
+    fn chunked_logs_survive_surge_note_length_limit() {
+        std::thread::Builder::new().stack_size(16*1024*1024).spawn(||{
+            let d=definitions().into_iter().find(|d|d["app"]=="xianyu").unwrap();
+            let r=execute(&wrapper(&d),"https://acs.m.goofish.com/gw/mtop.taobao.idlehome.home.nextfresh/8.0",r#"{"data":{"sections":[{"data":{"clickParam":{"args":{"cardType":"mamaAD"}}}},{"title":"PRIVATE_ITEM"}]}}"#,200,true,false);
+            let notes=r["logs"].as_array().unwrap();
+            for n in notes {assert!(n.as_str().unwrap().len()<200);}
+            let record=json!({"id":1,"completed":true,"notes":notes});
+            let parsed=run("ingest",&[record,json!("test-session")]).unwrap();
+            assert_eq!(parsed["events"][0]["before"]["ads"],1);assert_eq!(parsed["events"][0]["after"]["ads"],0);assert_eq!(parsed["diagnosticIssue"],false);
+            let incomplete=json!({"id":2,"completed":true,"notes":["AD_CHECK_CHUNK 0/2 {\"v\":1,"]});
+            assert_eq!(run("ingest",&[incomplete,json!("test-session")]).unwrap()["diagnosticIssue"],true);
+        }).unwrap().join().unwrap();
     }
 }

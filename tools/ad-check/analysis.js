@@ -32,12 +32,19 @@ const Engine = (() => {
     return {app,endpoint,failed:record.failed===true,rejected:record.rejected===true,completed:record.completed===true};
   }
   function ingest(record,session) {
-    const events=[];
+    const events=[],pieces=new Map();let total=0,issue=false;
     for(const note of Array.isArray(record.notes)?record.notes:[]) {
-      if(typeof note!=='string'||!note.includes('AD_CHECK_V1 '))continue;
-      try {const e=event(JSON.parse(note.split('AD_CHECK_V1 ')[1]),session);if(e)events.push(e);}catch(_){}
+      if(typeof note!=='string')continue;
+      const chunk=/AD_CHECK_CHUNK (\d{1,2})\/(\d{1,2}) (.*)$/.exec(note);
+      if(chunk){const i=Number(chunk[1]),n=Number(chunk[2]);if(n<1||n>64||i>=n||chunk[3].length>140){issue=true;continue;}if(total&&total!==n){issue=true;continue;}total=n;pieces.set(i,chunk[3]);continue;}
+      if(!note.includes('AD_CHECK_V1 '))continue;
+      try {const e=event(JSON.parse(note.split('AD_CHECK_V1 ')[1]),session);if(e)events.push(e);}catch(_){issue=true;}
     }
-    return {id:typeof record.id==='number'||typeof record.id==='string'?String(record.id).slice(0,80):null,events,request:metadata(record)};
+    if(total){
+      if(pieces.size!==total)issue=true;
+      else try{const payload=Array.from({length:total},(_,i)=>pieces.get(i)).join('');const e=event(JSON.parse(payload),session);if(e)events.push(e);}catch(_){issue=true;}
+    }
+    return {id:typeof record.id==='number'||typeof record.id==='string'?String(record.id).slice(0,80):null,events,request:metadata(record),diagnosticIssue:record.completed===true&&issue};
   }
   function replay(entries) {
     const out=[];
