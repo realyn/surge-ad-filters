@@ -22,3 +22,6 @@ private/
 **/target/
 **/reports/
 *.dSYM/
+
+# Original application artwork (not captured traffic or screenshots)
+!tools/ad-check/assets/AppIcon.png

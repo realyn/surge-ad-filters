@@ -44,7 +44,7 @@ https://raw.githubusercontent.com/realyn/surge-ad-filters/main/apps/weibo/Weibo.
 
 ## 按需检测广告变化
 
-[Surge Ad Check](tools/ad-check/README.md) 是 Rust 编写的本地 Mac 工具，支持手机实时观察和 HAR 离线模拟、基准比较、可选 Qwen / DeepSeek API 分析，以及 Codex / Claude Code 交接包。不会修改 Home，也不会自动发布修复。未知变化需要证据和实机复核。
+[Surge Ad Check](tools/ad-check/README.md) 是 Rust 编写的独立 Mac 应用，检测、报告和设置均在应用窗口内完成，不打开浏览器。支持手机实时观察和 HAR 离线模拟、基准比较、可选 Qwen / DeepSeek API 分析，以及 Codex / Claude Code 交接包。不会修改 Home，也不会自动发布修复。未知变化需要证据和实机复核。
 
 Mac 安装包见 [Releases](https://github.com/realyn/surge-ad-filters/releases)；首次连接与模型设置见 [使用说明](tools/ad-check/README.md)。
 

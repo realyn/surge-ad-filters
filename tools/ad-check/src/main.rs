@@ -1,6 +1,8 @@
 mod analysis;
 mod app;
 mod bridge;
+#[cfg(target_os = "macos")]
+mod desktop;
 mod handoff;
 mod llm;
 use analysis::Result;
@@ -11,7 +13,6 @@ use std::{
     fs,
     io::Read,
     path::PathBuf,
-    process::Command,
     sync::{
         Arc, Mutex,
         atomic::{AtomicBool, Ordering},
@@ -49,7 +50,14 @@ fn authorized(req: &Request, host: &str, token: &str) -> bool {
         && get("Origin").is_none_or(|o| o == format!("http://{host}"))
         && get("X-Ad-Check-Token") == Some(token)
 }
-fn handle(mut req: Request, shared: Shared, host: &str, token: &str, quit: Arc<AtomicBool>) {
+fn handle(
+    mut req: Request,
+    shared: Shared,
+    host: &str,
+    token: &str,
+    quit: Arc<AtomicBool>,
+    activate: Arc<AtomicBool>,
+) {
     let path = req.url().to_string();
     if !path.starts_with("/api/") {
         let good_host = req
@@ -223,6 +231,9 @@ fn handle(mut req: Request, shared: Shared, host: &str, token: &str, quit: Arc<A
             "/api/llm/forget" => {
                 return llm::forget(&s.folder);
             }
+            "/api/activate" => {
+                activate.store(true, Ordering::SeqCst);
+            }
             "/api/quit" => {
                 s.stop()?;
                 quit.store(true, Ordering::SeqCst);
@@ -275,13 +286,19 @@ fn launch() -> Result<()> {
         .map_err(|_| "无法打开本地数据目录。")?;
     if lock.try_lock_exclusive().is_err() {
         let runtime = bridge::load(&folder.join("runtime.json"));
-        if let Some(url) = runtime["url"].as_str() {
-            let _ = Command::new("open").arg(url).spawn();
+        if let Some(raw) = runtime["url"].as_str() {
+            let u = url::Url::parse(raw).map_err(|_| "已有实例的连接信息无效。")?;
+            let address = format!("{}/api/activate", u.origin().ascii_serialization());
+            ureq::post(address)
+                .header("X-Ad-Check-Token", u.fragment().unwrap_or(""))
+                .send_json(json!({}))
+                .map_err(|_| "已有旧版服务仍在运行，请先在旧版界面退出工具，再打开新版。")?;
         }
         return Ok(());
     }
     let shared = Arc::new(Mutex::new(App::new(folder.clone())?));
     let quit = Arc::new(AtomicBool::new(false));
+    let activate = Arc::new(AtomicBool::new(false));
     let q = quit.clone();
     ctrlc::set_handler(move || {
         q.store(true, Ordering::SeqCst);
@@ -291,10 +308,10 @@ fn launch() -> Result<()> {
     let host = server.server_addr().to_string();
     let token = bridge::token();
     let url = format!("http://{host}/#{token}");
-    bridge::save(&folder.join("runtime.json"), &json!({"url":url}))?;
-    if !args.iter().any(|a| a == "--no-open") {
-        let _ = Command::new("open").arg(&url).spawn();
-    }
+    bridge::save(
+        &folder.join("runtime.json"),
+        &json!({"url":url, "desktop":true, "pid":std::process::id()}),
+    )?;
     println!("Surge Ad Check 已启动；连接信息保存在本地 runtime.json。");
     let s = shared.clone();
     let q = quit.clone();
@@ -309,28 +326,60 @@ fn launch() -> Result<()> {
             }
         }
     });
-    while !quit.load(Ordering::SeqCst) {
-        if let Some(req) = server
-            .recv_timeout(Duration::from_millis(200))
-            .map_err(|_| "本机界面连接中断。")?
-        {
-            let s = shared.clone();
-            let h = host.clone();
-            let t = token.clone();
-            let q = quit.clone();
-            thread::Builder::new()
-                .stack_size(16 * 1024 * 1024)
-                .spawn(move || handle(req, s, &h, &t, q))
-                .map_err(|_| "无法启动本地请求处理。")?;
+    let server_shared = shared.clone();
+    let server_quit = quit.clone();
+    let server_activate = activate.clone();
+    let server_thread = thread::spawn(move || -> Result<()> {
+        while !server_quit.load(Ordering::SeqCst) {
+            if let Some(req) = server
+                .recv_timeout(Duration::from_millis(200))
+                .map_err(|_| "本机界面连接中断。")?
+            {
+                let s = server_shared.clone();
+                let h = host.clone();
+                let t = token.clone();
+                let q = server_quit.clone();
+                let a = server_activate.clone();
+                thread::Builder::new()
+                    .stack_size(16 * 1024 * 1024)
+                    .spawn(move || handle(req, s, &h, &t, q, a))
+                    .map_err(|_| "无法启动本地请求处理。")?;
+            }
         }
-    }
+        Ok(())
+    });
+    let ui_result = if args.iter().any(|a| a == "--no-open") {
+        while !quit.load(Ordering::SeqCst) {
+            thread::sleep(Duration::from_millis(200));
+        }
+        Ok(())
+    } else {
+        #[cfg(target_os = "macos")]
+        {
+            desktop::run(&url, shared.clone(), quit.clone(), activate)
+        }
+        #[cfg(not(target_os = "macos"))]
+        {
+            Err("独立应用窗口目前支持 macOS；其他系统可使用 --no-open 测试接口。".into())
+        }
+    };
+    quit.store(true, Ordering::SeqCst);
+    let _ = server_thread.join();
     let _ = shared.lock().unwrap().stop();
     let _ = fs::remove_file(folder.join("runtime.json"));
-    Ok(())
+    ui_result
 }
 fn main() {
     if let Err(e) = launch() {
         eprintln!("{e}");
+        #[cfg(target_os = "macos")]
+        if !std::env::args().any(|a| a == "--no-open" || a == "--watchdog") {
+            rfd::MessageDialog::new()
+                .set_title("Surge Ad Check")
+                .set_description(&e)
+                .set_level(rfd::MessageLevel::Error)
+                .show();
+        }
         std::process::exit(1);
     }
 }
