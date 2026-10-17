@@ -1,0 +1,36 @@
+name: 广告遗漏或正常功能异常
+description: 报告广告位置、复现步骤及误删问题
+body:
+  - type: markdown
+    attributes:
+      value: 请勿上传原始 HAR、Cookie、Token、证书、完整请求 URL 或个人配置。先提供位置和复现步骤即可。
+  - type: input
+    id: app
+    attributes:
+      label: 应用与版本
+      placeholder: 微博，版本号
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: 系统、Surge 和模块版本
+    validations:
+      required: true
+  - type: dropdown
+    id: kind
+    attributes:
+      label: 问题类型
+      options:
+        - 广告遗漏
+        - 正常内容或功能受到影响
+        - 新应用支持建议
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: 出现位置与复现步骤
+      description: 说明期望效果、实际效果，以及关闭模块后是否恢复。
+    validations:
+      required: true

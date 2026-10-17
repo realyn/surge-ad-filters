@@ -1,0 +1,8 @@
+#!name=Weibo Ad Filter
+#!desc=过滤微博开屏与广告缓存，以及内容接口中有明确标记的广告。保留正常内容、评论、推荐及分页字段。可单独关闭。
+
+[MITM]
+hostname = %APPEND% api.weibo.cn, mapi.weibo.com, bootpreload.uve.weibo.com, bootrealtime.uve.weibo.com, sdkapp.uve.weibo.com, wbapp.uve.weibo.com
+
+[Script]
+weibo-ad-filter = type=http-response,pattern=^https://(?:(?:api\.weibo\.cn|mapi\.weibo\.com)/2/(?:statuses/|comments/|search/|searchall(?:\?|$)|cardlist(?:\?|$)|page(?:\?|$)|profile/(?:container_timeline|statuses)|flowlist(?:\?|$)|flowpage(?:\?|$)|video/(?:flow_stream(?:_cache)?|flow_video_list|full_screen_stream|tiny_stream_mid_detail|tiny_stream_video_list)|stories/(?:video_stream|home_list)|groups/timeline|fangle/timeline|photo/recommend_list|service/picfeed)|(?:bootpreload|bootrealtime)\.uve\.weibo\.com/v[123]/ad/(?:preload|realtime)(?:\?|$)|wbapp\.uve\.weibo\.com/(?:wbapplua/wbpullad\.lua|preload/get_ad)(?:\?|$)|sdkapp\.uve\.weibo\.com/interface/sdk/sdkad\.php(?:\?|$)),requires-body=true,max-size=2097152,timeout=5,engine=jsc,debug=false,script-path=https://raw.githubusercontent.com/realyn/surge-ad-filters/v0.1.0/apps/weibo/weibo.js
