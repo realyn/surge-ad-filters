@@ -92,7 +92,11 @@ pub fn request_body(config: &Value, report: Option<&Value>) -> Value {
         })
         .unwrap_or_else(|| "连接测试：只回复 OK。".into());
     let mut body = json!({"model":config["model"],"stream":false,"max_tokens":if report.is_some(){config["maxTokens"].as_u64().unwrap_or(1200)}else{32},"messages":[{"role":"system","content":if report.is_some(){system}else{"只做连接测试。"}},{"role":"user","content":message}]});
-    if config["provider"] == "qwen" {
+    if config["provider"] == "qwen"
+        && config["model"]
+            .as_str()
+            .is_some_and(|m| m.starts_with("qwen"))
+    {
         body["enable_thinking"] = json!(false);
     }
     if config["provider"] == "deepseek" {

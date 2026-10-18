@@ -7,7 +7,7 @@ const routes = { weibo: '重开应用 → 首页 → 热搜 → 评论 → 视�
 const statuses = { uncovered: '未采集', review: '需要复查', observed: '与基准一致', 'no-baseline': '尚无比较基准' };
 const titles = { check: ['检查与复核', '检测'], report: ['结果与下一步', '报告'], principle: ['了解处理方式', '过滤原理'], settings: ['连接与偏好', '设置'] };
 let state, initialized = false, busy = false, lastReportId, rowSignature, currentPage = 'check', currentFilter = 'all', interval, quitting = false;
-const actionIds = ['start','stop','chooseHar','prepare','saveConnection','recover','export','handoff','saveFeedback','baseline','saveLLM','testLLM','forgetLLM','analyze','quit'];
+const actionIds = ['start','stop','chooseHar','prepare','saveConnection','recover','export','handoff','saveFeedback','baseline','saveLLM','testLLM','forgetLLM','analyze','quit','saveAppearance','resetAppearance'];
 function notice(text, error = false) { $('notice').textContent = text || ''; $('notice').hidden = !text; $('notice').classList.toggle('error', error); }
 function node(tag, text, cls) { const e = document.createElement(tag); if (text !== undefined) e.textContent = text; if (cls) e.className = cls; return e; }
 async function api(path, data) {
@@ -29,6 +29,7 @@ function syncControls() {
   $('recover').disabled ||= running;
   $('forgetLLM').disabled ||= !state?.llm?.hasKey || $('baseURL').value.trim() !== state?.llm?.baseURL;
   $('har').disabled = busy || running;
+  for (const id of ['provider','modelChoice','model','baseURL','apiKey','maxTokens','llmEnabled','fontFamily','fontSize']) $(id).disabled = busy || !state;
   for (const e of $('feedback').querySelectorAll('select')) e.disabled = busy || !done;
 }
 async function action(fn, success = '操作已完成。') {
@@ -91,9 +92,29 @@ function renderRows(report, force = false) {
   }
   $('emptyFilter').hidden = visible !== 0;
 }
+const modelPresets = {
+  qwen: ['qwen3.8-max','qwen3.7-plus','qwen3.8-flash','qwen-plus','qwen-flash','qwen-max'],
+  deepseek: ['deepseek-flash','deepseek-v4-pro'], custom: []
+};
+function fillModels(current) {
+  const provider = $('provider').value;
+  $('modelChoice').replaceChildren(...(modelPresets[provider] || []).map(id => { const o = node('option', id); o.value = id; return o; }));
+  const custom = node('option', '自定义模型…'); custom.value = 'custom'; $('modelChoice').append(custom);
+  const preset = (modelPresets[provider] || []).includes(current);
+  $('modelChoice').value = preset ? current : 'custom'; $('model').value = current || '';
+  $('customModelLabel').hidden = preset;
+  $('providerHint').textContent = provider === 'qwen' ? '使用阿里云百炼的 OpenAI 兼容接口。API 地址与密钥需属于同一地域；也支持控制台提供的业务空间专属地址。' : provider === 'deepseek' ? '使用 DeepSeek 官方 API。模型可用性以你的账号和连接测试为准。' : '填写兼容 OpenAI Chat Completions 的地址和完整模型 ID。';
+}
+function fillAppearance(value) { $('fontFamily').value = value.font; $('fontSize').value = String(value.size); previewAppearance(); }
+function previewAppearance() { document.documentElement.dataset.font = $('fontFamily').value; document.documentElement.dataset.size = $('fontSize').value; }
+for (const id of ['fontFamily','fontSize']) $(id).onchange = () => { previewAppearance(); $('appearanceStatus').textContent = '正在预览，点击保存后下次打开仍然生效。'; };
+$('saveAppearance').onclick = () => action(async () => { await api('appearance', {font:$('fontFamily').value,size:Number($('fontSize').value)}); $('appearanceStatus').textContent = '阅读设置已保存。'; }, '阅读设置已保存。');
+$('resetAppearance').onclick = () => action(async () => { const v = await api('appearance', {font:'system',size:14}); fillAppearance(v); $('appearanceStatus').textContent = '已恢复默认并保存。'; }, '已恢复默认字体和字号。');
+$('modelChoice').onchange = () => { const custom = $('modelChoice').value === 'custom'; $('customModelLabel').hidden = !custom; if (!custom) $('model').value = $('modelChoice').value; $('llmTestResult').textContent = '模型已切换，保存后生效。'; };
 function fillLLM(s) {
   $('llmEnabled').checked = s.enabled;
   for (const k of ['provider','baseURL','model','maxTokens']) $(k).value = s[k];
+  fillModels(s.model);
   $('keyStatus').textContent = s.hasKey ? '当前地址的密钥已保存在 Mac 钥匙串；不会在此显示。' : '当前地址尚未保存密钥。';
 }
 function render(s) {
@@ -113,7 +134,7 @@ function render(s) {
   if (!initialized) {
     for (const k of ['host','profile','cli']) $(k).value = s.settings[k] || '';
     for (const path of s.settings.profiles || []) { const o = node('option'); o.value = path; $('profiles').append(o); }
-    fillLLM(s.llm); initialized = true;
+    fillLLM(s.llm); fillAppearance(s.appearance || {font:'system',size:14}); initialized = true;
   }
   const reportKey = r.id || (running ? 'running' : 'empty');
   if (reportKey !== lastReportId) {
@@ -185,7 +206,9 @@ $('baseURL').addEventListener('input', syncControls);
 $('provider').onchange = () => {
   const p = $('provider').value;
   if (p === 'qwen') { $('baseURL').value = 'https://dashscope.aliyuncs.com/compatible-mode/v1'; $('model').value = 'qwen-plus'; }
+  if (p === 'custom') { $('baseURL').value = ''; $('model').value = ''; }
   if (p === 'deepseek') { $('baseURL').value = 'https://api.deepseek.com'; $('model').value = 'deepseek-flash'; }
+  fillModels($('model').value);
   $('apiKey').value = ''; $('keyStatus').textContent = '保存后会检查此地址对应的密钥。'; $('llmTestResult').textContent = ''; syncControls();
 };
 async function saveLLM() {

@@ -1,6 +1,6 @@
 [package]
 name = "surge-ad-check"
-version = "0.3.0"
+version = "0.4.0"
 edition = "2024"
 license = "MIT"
 description = "Local, evidence-based diagnostics for three Surge ad filters"

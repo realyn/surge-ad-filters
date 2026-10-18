@@ -1,5 +1,6 @@
 mod analysis;
 mod app;
+mod appearance;
 mod bridge;
 #[cfg(target_os = "macos")]
 mod desktop;
@@ -120,6 +121,7 @@ fn handle(
             let value = if path == "/api/state" {
                 let mut v = s.snapshot()?;
                 v["llm"] = llm::settings(&s.folder);
+                v["appearance"] = appearance::settings(&s.folder);
                 v
             } else if path == "/api/summary" {
                 llm::summary(&s.report()?)
@@ -222,6 +224,7 @@ fn handle(
         let mut s = shared.lock().unwrap();
         s.heartbeat = std::time::Instant::now();
         match path.as_str() {
+            "/api/appearance" => return appearance::save(&s.folder, &value),
             "/api/settings" => s.configure(&value)?,
             "/api/prepare" => s.prepare()?,
             "/api/stop" => s.stop()?,
