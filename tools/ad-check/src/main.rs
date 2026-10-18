@@ -73,6 +73,10 @@ fn handle(
                 "text/html; charset=utf-8",
                 include_bytes!("../web/index.html").as_slice(),
             ),
+            "/ui-model.js" => (
+                "text/javascript; charset=utf-8",
+                include_bytes!("../web/ui-model.js").as_slice(),
+            ),
             "/app.js" => (
                 "text/javascript; charset=utf-8",
                 include_bytes!("../web/app.js").as_slice(),
