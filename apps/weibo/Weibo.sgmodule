@@ -1,8 +1,8 @@
 #!name=Weibo Ad Filter
-#!desc=过滤微博开屏与广告缓存，以及内容接口中有明确标记的广告。保留正常内容、评论、推荐及分页字段。可单独关闭。
+#!desc=按明确广告标记过滤开屏与内容列表；保留正常内容、原始标识及分页，异常响应放行。
 
 [MITM]
 hostname = %APPEND% api.weibo.cn, mapi.weibo.com, bootpreload.uve.weibo.com, bootrealtime.uve.weibo.com, sdkapp.uve.weibo.com, wbapp.uve.weibo.com
 
 [Script]
-weibo-ad-filter = type=http-response,pattern=^https://(?:(?:api\.weibo\.cn|mapi\.weibo\.com)/2/(?:statuses/|comments/|search/|searchall(?:\?|$)|cardlist(?:\?|$)|page(?:\?|$)|profile/(?:container_timeline|statuses)|flowlist(?:\?|$)|flowpage(?:\?|$)|video/(?:flow_stream(?:_cache)?|flow_video_list|full_screen_stream|tiny_stream_mid_detail|tiny_stream_video_list)|stories/(?:video_stream|home_list)|groups/timeline|fangle/timeline|photo/recommend_list|service/picfeed)|(?:bootpreload|bootrealtime)\.uve\.weibo\.com/v[123]/ad/(?:preload|realtime)(?:\?|$)|wbapp\.uve\.weibo\.com/(?:wbapplua/wbpullad\.lua|preload/get_ad)(?:\?|$)|sdkapp\.uve\.weibo\.com/interface/sdk/sdkad\.php(?:\?|$)),requires-body=true,max-size=2097152,timeout=5,engine=jsc,debug=false,script-path=https://raw.githubusercontent.com/realyn/surge-ad-filters/v0.1.0/apps/weibo/weibo.js
+weibo-ad-filter = type=http-response,pattern=^https://(?:(?:(?:bootpreload|bootrealtime)\.uve\.weibo\.com/v[1-9][0-9]*/ad/(?:preload|realtime)|wbapp\.uve\.weibo\.com/(?:wbapplua/wbpullad\.lua|preload/get_ad)|sdkapp\.uve\.weibo\.com/interface/sdk/sdkad\.php)(?:\?|$)|(?:api\.weibo\.cn|mapi\.weibo\.com)/2/(?:statuses/(?:container_(?:timeline(?:_[a-z0-9]+)*|detail(?:_comment|_forward)?|positive)|(?:home|user|friends)_timeline)|comments/(?:build_comments|show|hotflow|bullet_screens)|search/(?:finder|container_timeline)|searchall|cardlist|page|profile/(?:container_timeline|statuses)|flowlist|flowpage|video/(?:flow_stream(?:_cache)?|flow_video_list|full_screen_stream|tiny_stream_mid_detail|tiny_stream_video_list)|stories/(?:video_stream|home_list)|groups/timeline|fangle/timeline|photo/recommend_list|service/picfeed)(?:\?|$)),requires-body=true,max-size=2097152,timeout=5,engine=jsc,debug=false,script-path=https://raw.githubusercontent.com/realyn/surge-ad-filters/v0.7.1/apps/weibo/weibo.js

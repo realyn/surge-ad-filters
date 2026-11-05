@@ -7,7 +7,8 @@ const vm = require('node:vm');
 const root = path.resolve(__dirname, '..');
 const source = fs.readFileSync(path.join(root, 'apps/weibo/weibo.js'), 'utf8');
 const moduleText = fs.readFileSync(path.join(root, 'apps/weibo/Weibo.sgmodule'), 'utf8');
-const pattern = new RegExp(moduleText.match(/pattern=(.*?),requires-body=/)[1]);
+const patterns = [...moduleText.matchAll(/pattern=(.*?),requires-body=/g)].map(x => new RegExp(x[1]));
+const pattern = {test: url => patterns.some(p => p.test(url))};
 const timeline = 'https://api.weibo.cn/2/statuses/container_timeline_hot';
 
 // All samples below are invented. No production responses or account data.
@@ -98,12 +99,12 @@ test('mixed banner carousel retains the ordinary news cell', () => {
   assert.deepEqual(filtered(body, 'https://api.weibo.cn/2/search/finder'), expected);
 });
 
-test('all-ad carousel is removed without pruning pre-existing empty cards', () => {
+test('all-ad nested business lists are preserved rather than emptying their parent', () => {
   const empty = { category: 'card', data: { items: [] } };
   const body = { items: [empty, { category: 'card', data: { items: [
     { sub_item: [{ corner_mark_data: { title: '广告' } }] }
   ] } }] };
-  assert.deepEqual(filtered(body), { items: [empty] });
+  assert.deepEqual(filtered(body), body);
 });
 
 test('video list and cache preserve ordinary video and next-page data', () => {
@@ -153,5 +154,5 @@ test('module matches the tested endpoints and uses a pinned script from this rep
 
 test('logs contain counts only, never the request or response content', () => {
   const { logs } = run({ items: [{ is_ad: true, text: 'PRIVATE_SENTINEL' }] }, timeline + '?token=PRIVATE_SENTINEL');
-  assert.deepEqual(logs, ['Weibo Ad Filter: removed 1 ad items']);
+  assert.deepEqual(logs, [], 'production diagnostics are opt-in');
 });
