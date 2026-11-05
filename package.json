@@ -1,6 +1,6 @@
 {
   "name": "surge-ad-filters",
-  "version": "0.7.1",
+  "version": "0.7.2",
   "private": true,
   "description": "Independent Surge ad filters that preserve normal browsing",
   "license": "MIT",
